@@ -5,7 +5,7 @@
  * some elements of it
  */
 
-project pSix "Web Game"  2025-12-15 +5m {
+project pSix "Web Game"  2025-12-15 +6m {
   # Set the default time zone for the project. If not specified, UTC
   # is used.
   timezone "Europe/Paris"
@@ -16,10 +16,8 @@ project pSix "Web Game"  2025-12-15 +5m {
   # Use Eurpean financial format for currency values. Don't show cents.
   currencyformat "-" "" "." "," 2
   # Pick a day during the project that will be reported as 'today' in
-  # the project reports. If not specified, the current day will be
-  # used, but this will likely be outside of the project range, so it
-  # can't be seen in the reports.
-  now 2026-02-25-13:00
+  # the project reports.
+  now 2026-04-15-13:00
   # The currency for all money values is the US Dollar.
   currency "EUR"
 
@@ -67,6 +65,10 @@ resource dev2 "Samantha Müller" {
 }
 resource dev3 "Peter Green" {
   email "kkk@unizar.es"
+}
+resource izan "Izan Celorrio" {
+  email "a900013@unizar.es"
+  limits { dailymax 4h }
 }
 
 # Now we specify the work packages. The whole project is described as
@@ -147,16 +149,72 @@ task WMGame "Web & Mobile Game" {
     }    
   }
 
+  task tmobF "Mobile Front End" {
+    purge chargeset
+    chargeset mFront
+    responsible izan
+    depends WMGame.tgdesign
+    depends WMGame.tback.tBEd
+
+    task tmGUId "Mobile GUI Design" {
+      effort 8d
+      allocate izan, dev3
+    }
+
+    task tmImpl "Mobile Front End Construction" {
+      effort 14d
+      allocate izan, dev3
+      depends WMGame.tmobF.tmGUId
+    }
+
+    task tmInt "Mobile Integration and Testing" {
+      effort 6d
+      allocate izan, dev1
+      depends WMGame.tmobF.tmImpl
+    }
+  }
+
+  task tcloud "Back End Cloud Deployment" {
+    purge chargeset
+    chargeset back
+    responsible boss
+    depends WMGame.tback.tbackDev
+
+    task tcloudEval "Cloud Evaluation and Provider Decision" {
+      effort 4d
+      allocate boss, izan
+      journalentry 2026-04-15 "Cloud provider decision under review" {
+        author izan
+        alert yellow
+        summary "A comparison of managed cloud options is being performed and the final deployment decision is pending."
+      }
+    }
+
+    task tcloudPrep "Deployment Preparation" {
+      effort 3d
+      allocate dev1, izan
+      depends WMGame.tcloud.tcloudEval
+    }
+
+    task tcloudDep "Cloud Deployment" {
+      effort 5d
+      allocate dev1, boss
+      depends WMGame.tcloud.tcloudPrep
+    }
+  }
+
   task ttest "Acceptance tests" {
+      start 2026-05-15
       effort 10d
       allocate boss
       allocate dev2
       actual:effort 20d
       depends WMGame.twebF
+      depends WMGame.tmobF
+      depends WMGame.tcloud
       depends WMGame.tback
-      }
+  }
 
-    
   task deliveries "Milestones" {
 
     # Some milestones have customer payments associated with them. We
@@ -223,6 +281,11 @@ textreport frame "" {
     formats html
     center '<[report id="overview"]>'
   }
+
+  textreport initialPlan "Initial Plan" {
+    formats html
+    center '<[report id="overviewPlan"]>'
+  }
   
   textreport "Status" {
     formats html
@@ -263,6 +326,19 @@ taskreport overview "" {
           revenue, chart { ${TaskTip} }
   # For this report we like to have the abbreviated weekday in front
   # of the date. %a is the tag for this.
+  timeformat "%a %Y-%m-%d"
+  loadunit days
+  hideresource @all
+  balance cost rev
+  caption 'All effort values are in man days.'
+}
+
+taskreport overviewPlan "" {
+  scenarios plan
+  headline "Initial Project Plan"
+  columns bsi { title 'WBS' },
+          name, start, end, effort, cost,
+          revenue, chart { ${TaskTip} }
   timeformat "%a %Y-%m-%d"
   loadunit days
   hideresource @all
